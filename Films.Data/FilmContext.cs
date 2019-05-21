@@ -17,6 +17,8 @@ namespace Films.Data
         {
             modelBuilder.Entity<ActorFilm>()
                 .HasKey(af => new { af.ActorId, af.FilmId });
+            modelBuilder.Entity<ActorFilm>()
+                .HasKey(af => new { af.ActorId, af.FilmId });
             base.OnModelCreating(modelBuilder);
         }
     }

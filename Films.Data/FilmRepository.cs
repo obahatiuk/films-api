@@ -27,23 +27,34 @@ namespace Films.Data
             _filmContext.Remove(entity);
         }
 
-        public Task<Actor> GetActorByNameAsync(string actorsName)
+        public Task<Actor> GetActorById(int id)
         {
-            var names = actorsName.Split(" ")[0];
-            var query = _filmContext.Actors.Where(a => (a.FirstName + a.LastName).Contains(names[0]) || (a.FirstName + a.LastName).Contains(names[1]));
+            var query = _filmContext.Actors.Where(a => a.Id == id);
+            return query.SingleOrDefaultAsync();
+        }
+
+        public Task<Director> GetDirectorById(int id)
+        {
+            var query = _filmContext.Directors.Where(d => d.Id == id);
+            return query.SingleOrDefaultAsync();
+        }
+
+        public Task<Actor> GetActorByNameAsync(string actorsFirstName, string actorsLastName)
+        {
+            var query = _filmContext.Actors.Where(a => (a.FirstName == actorsFirstName && a.LastName == actorsLastName));
             return query.FirstOrDefaultAsync();
         }
 
-        public Task<Actor[]> GetAllActorsByFilmAsync(int filmId)
+        public Task<Actor[]> GetActorsByFilmAsync(int filmId)
         {
-            var query = _filmContext.Actors.Where(a => a.ActorFilms.Contains(new ActorFilm { FilmId = filmId, ActorId = a.Id }));
+            var query = _filmContext.Actors.Where(a => a.ActorFilms.Where(af => af.FilmId == filmId && af.ActorId == a.Id ) != null);
             return query.ToArrayAsync();
         }
 
         public Task<Film[]> GetAllFilmsAsync(bool includeCast = false, bool includeDirector = false)
         {
             IQueryable<Film> query;
-            if (includeDirector && includeDirector) query = _filmContext.Films.Include(f => f.Director).Include(f => f.Cast);
+            if (includeDirector && includeDirector) query = _filmContext.Films.Include(f => f.Director).Include(f => f.Cast).ThenInclude(a => a.Actor);
             else if (includeDirector) query = _filmContext.Films.Include(f => f.Director);
             else if (includeCast) query = _filmContext.Films.Include(f => f.Cast);
             else query = _filmContext.Films;
@@ -53,10 +64,10 @@ namespace Films.Data
         public Task<Film[]> GetAllFilmsByActorAsync(int actorId, bool includeCast = false, bool includeDirector = false)
         {
             IQueryable<Film> query;
-            if (includeDirector && includeDirector) query = _filmContext.Films.Where(f => f.Cast.Contains(new ActorFilm() { FilmId = f.Id, ActorId = actorId })).Include(f => f.Director).Include(f => f.Cast);
-            else if (includeDirector) query = _filmContext.Films.Where(f => f.Cast.Contains(new ActorFilm() { FilmId = f.Id, ActorId = actorId })).Include(f => f.Director);
-            else if (includeCast) query = _filmContext.Films.Where(f => f.Cast.Contains(new ActorFilm() { FilmId = f.Id, ActorId = actorId })).Include(f => f.Cast);
-            else query = _filmContext.Films.Where(f => f.Cast.Contains(new ActorFilm() { FilmId = f.Id, ActorId = actorId }));
+            if (includeDirector && includeDirector) query = _filmContext.Films.Where(f => f.Cast.Where(af => af.FilmId == f.Id && af.ActorId == actorId) != null).Include(f => f.Director).Include(f => f.Cast);
+            else if (includeDirector) query = _filmContext.Films.Where(f => f.Cast.Where(af => af.FilmId == f.Id && af.ActorId == actorId) != null).Include(f => f.Director);
+            else if (includeCast) query = _filmContext.Films.Where(f => f.Cast.Where(af => af.FilmId == f.Id && af.ActorId == actorId) != null).Include(f => f.Cast);
+            else query = _filmContext.Films.Where(f => f.Cast.Where(af => af.FilmId == f.Id && af.ActorId == actorId) != null);
             return query.ToArrayAsync();
         }
 
@@ -70,16 +81,19 @@ namespace Films.Data
             return query.ToArrayAsync();
         }
 
-        public Task<Director> GetDirectorByNameAsync(string directorsName)
+        public Task<Director> GetDirectorByNameAsync(string directorsFirstName, string directorsLastName)
         {
-            var names = directorsName.Split(" ");
-            var query = _filmContext.Directors.Where(d => (d.FirstName + d.LastName).Contains(names[0]) && (d.FirstName + d.LastName).Contains(names[1]));
+            var query = _filmContext.Directors.Where(d => d.FirstName ==  directorsFirstName && d.LastName == directorsLastName);
             return query.SingleOrDefaultAsync();
         }
 
-        public Task<Film> GetFilmByTitleAsync(string filmTitle)
+        public Task<Film> GetFilmByTitleAsync(string filmTitle, bool includeCast = false, bool includeDirector = false)
         {
-            var query = _filmContext.Films.Where(f => f.Title == filmTitle);
+            IQueryable<Film> query;
+            if (includeDirector && includeDirector) query = _filmContext.Films.Where(f => f.Title == filmTitle).Include(f => f.Director).Include(f => f.Cast);
+            else if (includeDirector) query = _filmContext.Films.Where(f => f.Title == filmTitle).Include(f => f.Director).Include(f => f.Director);
+            else if (includeCast) query = _filmContext.Films.Where(f => f.Title == filmTitle).Include(f => f.Director).Include(f => f.Cast);
+            else query = _filmContext.Films.Where(f => f.Title == filmTitle);
             return query.SingleOrDefaultAsync();
         }
 

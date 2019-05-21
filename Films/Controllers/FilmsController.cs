@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Films.Core;
 using Films.Data;
 using Films.Models;
 using Microsoft.AspNetCore.Http;
@@ -28,11 +29,83 @@ namespace Films.Controllers
         {
             try
             {
-                var results = await _repository.GetAllFilmsAsync();
+                var results = await _repository.GetAllFilmsAsync(true, true);
 
                 return _mapper.Map<FilmModel[]>(results);
             }
             catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+            }
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<FilmModel>> Post(FilmModel model)
+        {
+            try
+            {
+                var existingFilm = await _repository.GetFilmByTitleAsync(model.Title);
+                if (existingFilm != null) return BadRequest("There is a film with same name");
+                if (model.Director.FirstName == null || model.Director.LastName == null) return BadRequest("There is no director provided");
+
+                var director = _repository.GetDirectorByNameAsync(model.Director.FirstName, model.Director.LastName);
+                if(director == null) return BadRequest("Director not found");
+
+                var film = _mapper.Map<Film>(model);
+                _repository.Add(film);
+
+                if (await _repository.SaveChangesAsync()) return Created($"/api/films/{model.Title}", _mapper.Map<FilmModel>(film));
+                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+            }
+        }
+
+        [HttpPut]
+        public async Task<ActionResult<FilmModel>> UpdateFilm(string filmName, FilmModel model)
+        {
+            try
+            {
+                var film = _repository.GetFilmByTitleAsync(filmName);
+                if (film == null) return BadRequest("Film doesn't exist in db please add film with post method /api/films");
+
+                await _mapper.Map(model, film);
+
+                if (await _repository.SaveChangesAsync()) return _mapper.Map<FilmModel>(film);
+
+                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+            }
+        }
+
+        [HttpPut("{filmName}/{actorFirstName}/{actorLastName}/")]
+        public async Task<ActionResult> AddActorToCast(string actorFirstName, string actorLastName, string filmName)
+        {
+            try
+            {
+                var film = await _repository.GetFilmByTitleAsync(filmName, true);
+                if (film == null) return BadRequest("Film doesn't exist in db please add film with post method /api/films");
+
+                var actor = await _repository.GetActorByNameAsync(actorFirstName, actorLastName);
+                if (actor == null) return BadRequest("Actor doesn't exist in db please add actor with post method /api/actors");
+
+                if (film.Cast.Where(af =>  af.ActorId == actor.Id && af.FilmId == film.Id).FirstOrDefault() != null) return BadRequest($"Actor is already mentioned in cast for {filmName}");
+
+                _repository.Add(new ActorFilm() { ActorId = actor.Id, FilmId = film.Id});
+
+                if (await _repository.SaveChangesAsync()) return Ok("Actor added");
+
+                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+
+            }
+            catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }

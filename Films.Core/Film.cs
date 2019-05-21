@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Films.Core
 {
@@ -10,6 +9,6 @@ namespace Films.Core
         public string Overview { get; set; }
         public int DirectorId { get; set; }
         public Director Director { get; set; }
-        public List<ActorFilm> Cast { get; set; }
+        public ICollection<ActorFilm> Cast { get; set; }
     }
 }

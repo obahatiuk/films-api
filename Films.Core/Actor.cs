@@ -6,6 +6,6 @@ namespace Films.Core
 {
     public class Actor : Person
     {
-        public List<ActorFilm> ActorFilms { get; set; }
+        public ICollection<ActorFilm> ActorFilms { get; set; }
     }
 }
