@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Films.Models
 {
-    public class DirectorModel : PersonModel
+    public class DirectorModel : FilmIndustryEmployee
     {
     }
 }

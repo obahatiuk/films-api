@@ -24,15 +24,14 @@ namespace Films.Controllers
             _mapper = mapper;
         }
 
-        [HttpGet("{directorFirstName}/{directorLastName}")]
-        public async Task<ActionResult<DirectorModel>> Get(string directorFirstName, string directorLastName)
+        [HttpGet]
+        public async Task<ActionResult<DirectorModel[]>> Get()
         {
             try
             {
-                if (string.IsNullOrEmpty(directorFirstName) || string.IsNullOrEmpty(directorLastName)) return BadRequest("Name is invalid");
-
-                var director = await _repository.GetDirectorByNameAsync(directorFirstName, directorLastName);
-                return _mapper.Map<DirectorModel>(director);
+                var directors = await _repository.GetAllDirectorsAsync(true);
+                var x =  _mapper.Map<DirectorModel[]>(directors);
+                return x;
             }
             catch (Exception e)
             {
@@ -40,12 +39,28 @@ namespace Films.Controllers
             }
         }
 
+        //[HttpGet]
+        //public async Task<ActionResult<DirectorModel>> Get(string directorFirstName, string directorLastName)
+        //{
+        //    try
+        //    {
+        //        if (string.IsNullOrEmpty(directorFirstName) || string.IsNullOrEmpty(directorLastName)) return BadRequest("Name is invalid");
+
+        //        var director = await _repository.GetDirectorByNameAsync(directorFirstName, directorLastName);
+        //        return _mapper.Map<DirectorModel>(director);
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+        //    }
+        //}
+
         [HttpPost]
         public async Task<ActionResult<DirectorModel>> Post(DirectorModel model)
         {
             try
             {
-                var existingDirector = _repository.GetDirectorByNameAsync(model.FirstName, model.LastName);
+                var existingDirector = await _repository.GetDirectorByNameAsync(model.FirstName, model.LastName);
                 if (existingDirector != null) return BadRequest("There is director with the name in db");
 
                 var director = _mapper.Map<Director>(model);

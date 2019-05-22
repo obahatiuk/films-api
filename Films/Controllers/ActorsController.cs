@@ -44,14 +44,13 @@ namespace Films.Controllers
             }
         }
 
-        [HttpGet("{actorFirstName}/{actorLastName}")]
-        public async Task<ActionResult<ActorModel>> Get(string actorFirstName, string actorLastName)
+        [HttpGet]
+        public async Task<ActionResult<ActorModel>> Get(bool? includeFilms)
         {
             try
             {
-                if (string.IsNullOrEmpty(actorFirstName) || string.IsNullOrEmpty(actorLastName)) return BadRequest("Name is invalid");
 
-                var actor = await _repository.GetActorByNameAsync(actorFirstName, actorLastName);
+                var actor = await _repository.GetAllActorsAsync(includeFilms.Value);
                 return _mapper.Map<ActorModel>(actor);
             }
             catch (Exception)

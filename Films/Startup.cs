@@ -15,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 
 namespace Films
 {
@@ -36,7 +37,9 @@ namespace Films
             services.AddScoped<IFilmRepository, FilmRepository>();
 
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1).AddJsonOptions(options => {
+                options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+            });
 
         }
 
@@ -53,7 +56,7 @@ namespace Films
             }
 
             app.UseHttpsRedirection();
-            app.UseMvc();
+            app.UseMvc(); 
         }
     }
 }

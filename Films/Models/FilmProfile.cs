@@ -11,15 +11,25 @@ namespace Films.Models
     {
         public FilmProfile()
         {
-            CreateMap<Actor, ActorModel>().ReverseMap();
+            CreateMap<Actor, ActorModel>()
+                .ReverseMap();
+
+            CreateMap<Director, DirectorModel>()
+                .ReverseMap();
+
+            CreateMap<FilmModel, ActorFilm>()
+                .ForMember(dto => dto.Film, opt => opt.MapFrom(a => a))
+                .ReverseMap();
 
             CreateMap<ActorFilm, ActorModel>()
                 .ForMember(dto => dto.FirstName, opt => opt.MapFrom(a => a.Actor.FirstName))
                 .ForMember(dto => dto.LastName, opt => opt.MapFrom(a => a.Actor.LastName))
                 .ReverseMap();
-            CreateMap<Film, FilmModel>()
-                .ForMember(dto => dto.Cast, opt => opt.MapFrom(f => f.Cast));
-            CreateMap<Director, DirectorModel>();
+
+            CreateMap<FilmModel, Film>()
+                .ForMember(dto => dto.Id, opt => opt.Ignore())
+                .ForMember(dto => dto.DirectorId, opt => opt.Ignore())
+            .ReverseMap();
         }
     }
 }

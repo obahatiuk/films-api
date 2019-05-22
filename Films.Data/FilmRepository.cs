@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Films.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 
 namespace Films.Data
 {
@@ -56,7 +57,7 @@ namespace Films.Data
             IQueryable<Film> query;
             if (includeDirector && includeDirector) query = _filmContext.Films.Include(f => f.Director).Include(f => f.Cast).ThenInclude(a => a.Actor);
             else if (includeDirector) query = _filmContext.Films.Include(f => f.Director);
-            else if (includeCast) query = _filmContext.Films.Include(f => f.Cast);
+            else if (includeCast) query = _filmContext.Films.Include(f => f.Cast).ThenInclude(a => a.Actor);
             else query = _filmContext.Films;
             return query.ToArrayAsync();
         }
@@ -81,10 +82,10 @@ namespace Films.Data
             return query.ToArrayAsync();
         }
 
-        public Task<Director> GetDirectorByNameAsync(string directorsFirstName, string directorsLastName)
+        public Task<Director> GetDirectorByNameAsync(string directorsFirstName, string directorsLastName, bool includeFilms = false)
         {
-            var query = _filmContext.Directors.Where(d => d.FirstName ==  directorsFirstName && d.LastName == directorsLastName);
-            return query.SingleOrDefaultAsync();
+            if (includeFilms) return _filmContext.Directors.Where(d => d.FirstName == directorsFirstName && d.LastName == directorsLastName).Include(d => d.Films).SingleOrDefaultAsync();
+            else return _filmContext.Directors.Where(d => d.FirstName == directorsFirstName && d.LastName == directorsLastName).SingleOrDefaultAsync();
         }
 
         public Task<Film> GetFilmByTitleAsync(string filmTitle, bool includeCast = false, bool includeDirector = false)
@@ -102,5 +103,16 @@ namespace Films.Data
             return (await _filmContext.SaveChangesAsync()) > 0;
         }
 
+        public Task<Director[]> GetAllDirectorsAsync(bool includeFilms = false)
+        {
+            if (includeFilms) return _filmContext.Directors.Include(d => d.Films).ToArrayAsync();
+            else return _filmContext.Directors.ToArrayAsync();
+        }
+
+        public Task<Actor[]> GetAllActorsAsync(bool includeFilms = false)
+        {
+            if (includeFilms) return _filmContext.Actors.Include(d => d.ActorFilms).ThenInclude(af => af.Select(e => e.Film)).ToArrayAsync();
+            else return _filmContext.Actors.ToArrayAsync();
+        }
     }
 }
