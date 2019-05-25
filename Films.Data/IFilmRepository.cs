@@ -12,7 +12,7 @@ namespace Films.Data
         void Delete<T>(T entity) where T : class;
         Task<bool> SaveChangesAsync();
 
-        Task<Actor> GetActorByNameAsync(string actorsFirstName, string actorsLastName);
+        Task<Actor> GetActorByNameAsync(string actorsFirstName, string actorsLastName, bool includeCast = false);
         Task<Actor[]> GetActorsByFilmAsync(int filmId);
         Task<Actor> GetActorById(int id);
         Task<Actor[]> GetAllActorsAsync(bool includeFilms = false);

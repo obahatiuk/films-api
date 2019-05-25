@@ -25,11 +25,11 @@ namespace Films.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<FilmModel[]>> Get()
+        public async Task<ActionResult<FilmModel[]>> Get(bool includeCast = false, bool includeDirector = false)
         {
             try
             {
-                var results = await _repository.GetAllFilmsAsync(true, true);
+                var results = await _repository.GetAllFilmsAsync(includeCast, includeDirector);
 
                 return _mapper.Map<FilmModel[]>(results);
             }
@@ -44,38 +44,23 @@ namespace Films.Controllers
         {
             try
             {
-                var existingFilm = await _repository.GetFilmByTitleAsync(model.Title);
-                if (existingFilm != null) return BadRequest("There is a film with same name");
+                var film = await _repository.GetFilmByTitleAsync(model.Title);
+                if (film != null) return BadRequest("There is a film with same name");
                 if (model.Director.FirstName == null || model.Director.LastName == null) return BadRequest("There is no director provided");
 
-                var director = await _repository.GetDirectorByNameAsync(model.Director.FirstName, model.Director.LastName);
-                if (director == null) return BadRequest("Director not found");
+                film = _mapper.Map<Film>(model);
 
-                if (model.Cast != null)
-                {
-                    foreach (var actorModel in model.Cast)
-                    {
-                        if (string.IsNullOrEmpty(actorModel.FirstName) || string.IsNullOrEmpty(actorModel.LastName)) return BadRequest($"Actor's name: {actorModel.FirstName} && {actorModel.LastName} is invalid");
-                        if (await _repository.GetActorByNameAsync(actorModel.FirstName, actorModel.LastName) == null) return BadRequest($"Actor {actorModel.FirstName} {actorModel.LastName} does not exist in db");
-                    }
-                }
+                var updateDirectorResult = await UpdateDirector(film);
 
-                var film = _mapper.Map<Film>(model);
-                film.DirectorId = director.Id;
+                if (!updateDirectorResult.Item1) return BadRequest(updateDirectorResult.Item2);
+
+                var updateCastResult = await UpdateDirector(film);
+
+                if (!updateCastResult.Item1) return BadRequest(updateCastResult.Item2);
+
                 _repository.Add(film);
 
                 if (await _repository.SaveChangesAsync()) return Created($"/api/films/{model.Title}", _mapper.Map<FilmModel>(film));
-
-                foreach (var actorModel in model.Cast)
-                {
-                    var actor = await _repository.GetActorByNameAsync(actorModel.FirstName, actorModel.LastName);
-                    var existingActors = await _repository.GetActorsByFilmAsync(film.Id);
-
-                    if (existingActors.Where(a => a.Id == actor.Id) == null) _repository.Add(new ActorFilm() { ActorId = actor.Id, FilmId = film.Id });
-                }
-
-                if (await _repository.SaveChangesAsync()) return Created($"/api/films/{model.Title}", _mapper.Map<FilmModel>(film));
-
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
 
             }
@@ -85,7 +70,7 @@ namespace Films.Controllers
             }
         }
 
-        [HttpPut("{filmName}")]
+        [HttpPut("updatefilm/{filmName}")]
         public async Task<ActionResult<FilmModel>> UpdateFilm(string filmName, FilmModel model)
         {
             try
@@ -95,8 +80,20 @@ namespace Films.Controllers
 
                 _mapper.Map(model, film);
 
-                if (await _repository.SaveChangesAsync()) return _mapper.Map<FilmModel>(film);
+                var updateDirectorResult = await UpdateDirector(film);
 
+                if (!updateDirectorResult.Item1) return BadRequest(updateDirectorResult.Item2);
+
+                var updateCastResult = await UpdateDirector(film);
+
+                if (!updateCastResult.Item1) return BadRequest(updateCastResult.Item2);
+
+                if (await _repository.SaveChangesAsync())
+                {
+                    film = await _repository.GetFilmByTitleAsync(film.Title);
+                    return _mapper.Map<FilmModel>(film);
+
+                }
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
 
             }
@@ -106,7 +103,28 @@ namespace Films.Controllers
             }
         }
 
-        [HttpPut("{filmName}")]
+
+        [HttpDelete("{filmname}")]
+        public async Task<ActionResult> DeleteFilm(string filmName)
+        {
+            try
+            {
+                var film = await _repository.GetFilmByTitleAsync(filmName);
+                if (film == null) return BadRequest("Film doesn't exist");
+
+                _repository.Delete(film);
+
+                if (await _repository.SaveChangesAsync()) return Ok($"Film {filmName} was deleted");
+
+                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+            }
+        }
+
+        [HttpPut("addToCast/{filmName}")]
         public async Task<ActionResult> AddActorToCast(string filmName, ActorModel model)
         {
             try
@@ -130,6 +148,64 @@ namespace Films.Controllers
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }
+        }
+
+        [HttpDelete("deleteFromCast/{filmName}")]
+        public async Task<ActionResult> DeleteActorFromCast(string filmName, ActorModel model)
+        {
+            try
+            {
+                var film = await _repository.GetFilmByTitleAsync(filmName, true);
+                if (film == null) return BadRequest("Film doesn't exist in db please add film with post method /api/films");
+
+                var actor = await _repository.GetActorByNameAsync(model.FirstName, model.LastName);
+                if (actor == null) return BadRequest("Actor doesn't exist in db please add actor with post method /api/actors");
+
+                var castEntity = film.Cast.Where(af => af.ActorId == actor.Id && af.FilmId == film.Id).FirstOrDefault();
+
+                if (castEntity == null) return BadRequest($"The actor isn't mentioned in cast for {filmName}");
+
+                _repository.Delete(castEntity);
+
+                if (await _repository.SaveChangesAsync()) return Ok("Actor Deleted");
+
+                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+            }
+        }
+
+        public async Task<Tuple<bool, string>> UpdateDirector(Film film)
+        {
+            if (film.Director != null)
+            {
+                if (string.IsNullOrEmpty(film.Director.FirstName) || string.IsNullOrEmpty(film.Director.LastName)) return Tuple.Create(true, "Directors name invalid");
+                var director = await _repository.GetDirectorByNameAsync(film.Director.FirstName, film.Director.LastName);
+                if (director == null) return Tuple.Create(true, "Director not found. Please add director first");
+                film.Director.Id = director.Id;
+            }
+            return Tuple.Create(true, "");
+        }
+
+
+        private async Task<Tuple<bool, string>> UpdateCastAsync(Film film)
+        {
+            if (film.Cast.Count() != 0)
+            {
+                var actors = film.Cast.Select(af => af.Actor).ToArray();
+                foreach (var actor in actors)
+                {
+                    if (string.IsNullOrEmpty(actor.FirstName) || string.IsNullOrEmpty(actor.LastName)) return Tuple.Create(false, $"{actor.FirstName} {actor.LastName} invalid");
+                    var dbEntity = await _repository.GetActorByNameAsync(actor.FirstName, actor.LastName);
+                    if (dbEntity == null) return Tuple.Create(false, $"{actor.FirstName} {actor.LastName} doesn't exist in db. Please add the actor first");
+                    var entityToMap = film.Cast.Where(c => c.Actor.FirstName == actor.FirstName && c.Actor.LastName == actor.LastName).Select(c => c.Actor).SingleOrDefault();
+                    entityToMap.Id = dbEntity.Id;
+                }
+            }
+            return Tuple.Create(true, "");
         }
     }
 }

@@ -25,12 +25,12 @@ namespace Films.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<DirectorModel[]>> Get()
+        public async Task<ActionResult<DirectorModel[]>> Get(bool includeFilms = false)
         {
             try
             {
-                var directors = await _repository.GetAllDirectorsAsync(true);
-                var x =  _mapper.Map<DirectorModel[]>(directors);
+                var directors = await _repository.GetAllDirectorsAsync(includeFilms);
+                var x = _mapper.Map<DirectorModel[]>(directors);
                 return x;
             }
             catch (Exception e)
@@ -38,22 +38,6 @@ namespace Films.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }
         }
-
-        //[HttpGet]
-        //public async Task<ActionResult<DirectorModel>> Get(string directorFirstName, string directorLastName)
-        //{
-        //    try
-        //    {
-        //        if (string.IsNullOrEmpty(directorFirstName) || string.IsNullOrEmpty(directorLastName)) return BadRequest("Name is invalid");
-
-        //        var director = await _repository.GetDirectorByNameAsync(directorFirstName, directorLastName);
-        //        return _mapper.Map<DirectorModel>(director);
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
-        //    }
-        //}
 
         [HttpPost]
         public async Task<ActionResult<DirectorModel>> Post(DirectorModel model)
@@ -64,6 +48,11 @@ namespace Films.Controllers
                 if (existingDirector != null) return BadRequest("There is director with the name in db");
 
                 var director = _mapper.Map<Director>(model);
+
+                var filmsUpdateResult = await UpdateDirectorsFilm(director);
+
+                if (!filmsUpdateResult.Item1) return BadRequest(filmsUpdateResult.Item2);
+
                 _repository.Add(director);
 
                 if (await _repository.SaveChangesAsync()) return Created($"api/Directors/{model.FirstName}/{model.LastName}", _mapper.Map<DirectorModel>(director));
@@ -74,6 +63,46 @@ namespace Films.Controllers
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }
+        }
+
+        [HttpPut("{filmTitle}")]
+        public async Task<ActionResult<DirectorModel>> Post(string filmTitle, DirectorModel model)
+        {
+            try
+            {
+                var director = await _repository.GetDirectorByNameAsync(model.FirstName, model.LastName);
+                if (director != null) return BadRequest("There is director with the name in db");
+
+                _mapper.Map(model, director);
+
+                var filmsUpdateResult = await UpdateDirectorsFilm(director);
+
+                if (!filmsUpdateResult.Item1) return BadRequest(filmsUpdateResult.Item2);
+
+                if (await _repository.SaveChangesAsync()) return Created($"api/Directors/{model.FirstName}/{model.LastName}", _mapper.Map<DirectorModel>(director));
+
+                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+            }
+        }
+
+        private async Task<Tuple<bool, string>> UpdateDirectorsFilm(Director director)
+        {
+            if (director.Films.Count() != 0)
+            {
+                foreach (var film in director.Films)
+                {
+                    if (string.IsNullOrEmpty(film.Title)) return Tuple.Create(false, $"Film title: {film.Title} is invalid");
+                    var filmId = (await _repository.GetFilmByTitleAsync(film.Title)).Id;
+
+                    if (filmId < 1) return Tuple.Create(false, $"Film {film.Title} doesn't exist in db. Please add film first");
+                    film.Id = filmId;
+                }
+            }
+            return Tuple.Create(true, "");
         }
     }
 }
