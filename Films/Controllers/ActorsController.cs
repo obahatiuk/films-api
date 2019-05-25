@@ -86,7 +86,7 @@ namespace Films.Controllers
              
         }
 
-        [HttpDelete]
+        [HttpDelete("{firstName}_{lastName}")]
         public async Task<ActionResult> Delete(string firstName, string lastName)
         {
             try

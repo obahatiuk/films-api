@@ -49,7 +49,7 @@ namespace Films.Controllers
 
                 var director = _mapper.Map<Director>(model);
 
-                var filmsUpdateResult = await UpdateDirectorsFilm(director);
+                var filmsUpdateResult = UpdateDirectorsFilm(director);
 
                 if (!filmsUpdateResult.Item1) return BadRequest(filmsUpdateResult.Item2);
 
@@ -75,7 +75,7 @@ namespace Films.Controllers
 
                 _mapper.Map(model, director);
 
-                var filmsUpdateResult = await UpdateDirectorsFilm(director);
+                var filmsUpdateResult = UpdateDirectorsFilm(director);
 
                 if (!filmsUpdateResult.Item1) return BadRequest(filmsUpdateResult.Item2);
 
@@ -89,19 +89,28 @@ namespace Films.Controllers
             }
         }
 
-        private async Task<Tuple<bool, string>> UpdateDirectorsFilm(Director director)
+        [HttpDelete("{firstName_lastName}")]
+        public async Task<ActionResult> Delete(string firstName, string lastName)
         {
-            if (director.Films.Count() != 0)
+            try
             {
-                foreach (var film in director.Films)
-                {
-                    if (string.IsNullOrEmpty(film.Title)) return Tuple.Create(false, $"Film title: {film.Title} is invalid");
-                    var filmId = (await _repository.GetFilmByTitleAsync(film.Title)).Id;
+                var director = _repository.GetDirectorByNameAsync(firstName, lastName);
+                if (director == null) return BadRequest("Director doesn't exist in db");
 
-                    if (filmId < 1) return Tuple.Create(false, $"Film {film.Title} doesn't exist in db. Please add film first");
-                    film.Id = filmId;
-                }
+                _repository.Delete(director);
+
+                if (await _repository.SaveChangesAsync()) return Ok($"Director {firstName} {lastName} was deleted");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+            }
+        }
+
+        private Tuple<bool, string> UpdateDirectorsFilm(Director director)
+        {
+            if (director.Films != null && director.Films.Count() != 0) return Tuple.Create(false, $"This method doesn't support adding films to director instance. Please set the film's director by updating the film.");
             return Tuple.Create(true, "");
         }
     }
