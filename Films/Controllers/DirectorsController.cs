@@ -49,11 +49,21 @@ namespace Films.Controllers
 
                 var director = _mapper.Map<Director>(model);
 
-                var filmsUpdateResult = UpdateDirectorsFilm(director);
-
-                if (!filmsUpdateResult.Item1) return BadRequest(filmsUpdateResult.Item2);
-
                 _repository.Add(director);
+
+                var filmsUpdateResult = await UpdateFilmForDirector(director);
+
+                if (!filmsUpdateResult.Item1)
+                {
+                    //_repository.UndoChanges();
+                    return BadRequest(filmsUpdateResult.Item2);
+                }
+
+                if (!await _repository.SaveChangesAsync())
+                {
+                    //_repository.UndoChanges();
+                    return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+                } 
 
                 if (await _repository.SaveChangesAsync()) return Created($"api/Directors/{model.FirstName}/{model.LastName}", _mapper.Map<DirectorModel>(director));
 
@@ -65,19 +75,23 @@ namespace Films.Controllers
             }
         }
 
-        [HttpPut("{filmTitle}")]
-        public async Task<ActionResult<DirectorModel>> Post(string filmTitle, DirectorModel model)
+        [HttpPut("{firstName}_{lastName}")]
+        public async Task<ActionResult<DirectorModel>> Put(string firstName, string lastName, DirectorModel model)
         {
             try
             {
-                var director = await _repository.GetDirectorByNameAsync(model.FirstName, model.LastName);
-                if (director != null) return BadRequest("There is director with the name in db");
+                var director = await _repository.GetDirectorByNameAsync(firstName, lastName);
+                if (director == null) return BadRequest("There is director with the name in db");
 
                 _mapper.Map(model, director);
 
-                var filmsUpdateResult = UpdateDirectorsFilm(director);
+                var filmsUpdateResult = await UpdateFilmForDirector(director);
 
-                if (!filmsUpdateResult.Item1) return BadRequest(filmsUpdateResult.Item2);
+                if (!filmsUpdateResult.Item1)
+                {
+                    //_repository.Undo(director);
+                    return BadRequest(filmsUpdateResult.Item2);
+                }
 
                 if (await _repository.SaveChangesAsync()) return Created($"api/Directors/{model.FirstName}/{model.LastName}", _mapper.Map<DirectorModel>(director));
 
@@ -94,6 +108,8 @@ namespace Films.Controllers
         {
             try
             {
+                if (string.IsNullOrEmpty(firstName) || string.IsNullOrEmpty(lastName)) return BadRequest("Name is not valid");
+
                 var director = _repository.GetDirectorByNameAsync(firstName, lastName);
                 if (director == null) return BadRequest("Director doesn't exist in db");
 
@@ -108,9 +124,17 @@ namespace Films.Controllers
             }
         }
 
-        private Tuple<bool, string> UpdateDirectorsFilm(Director director)
+        private async Task<Tuple<bool, string>> UpdateFilmForDirector(Director director)
         {
-            if (director.Films != null && director.Films.Count() != 0) return Tuple.Create(false, $"This method doesn't support adding films to director instance. Please set the film's director by updating the film.");
+            for(int i =0; i < director.Films.Count(); i++)
+            {
+                var film = director.Films.ElementAt(i);
+                if (film.Cast != null && film.Cast.Count() > 0) return Tuple.Create(false, $"{film.Title} contains Cast inforamtion. Please use film controller in order to update cast");
+                var existingEntity = await _repository.GetFilmByTitleAsync(film.Title);
+                if (existingEntity == null) return Tuple.Create(false, $"{film.Title} doesn't exist in db. Please add film first");
+                existingEntity.DirectorId = director.Id;
+                director.Films.Remove(film);
+            }
             return Tuple.Create(true, "");
         }
     }
