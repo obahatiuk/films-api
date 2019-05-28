@@ -53,7 +53,7 @@ namespace Films.Controllers
 
                 if (!updateDirectorResult.Item1) return BadRequest(updateDirectorResult.Item2);
 
-                var updateCastResult = await UpdateDirectorAsync(film);
+                var updateCastResult = await UpdateCastAsync(film);
 
                 if (!updateCastResult.Item1) return BadRequest(updateCastResult.Item2);
 
@@ -184,7 +184,7 @@ namespace Films.Controllers
             if (string.IsNullOrEmpty(film.Director.FirstName) || string.IsNullOrEmpty(film.Director.LastName)) return Tuple.Create(false, "Directors name invalid");
             var director = await _repository.GetDirectorByNameAsync(film.Director.FirstName, film.Director.LastName);
             if (director == null) return Tuple.Create(false, "Director not found. Please add director first");
-            if (director.Films.Count() != 0) return Tuple.Create(false, $"Director's entity {director.FirstName} {director.LastName} contains films, which not suppose to be added/updated by films controller. If you want to update/add films to director's entity please use directors instance and directors controller");
+            if (film.Director.Films != null && film.Director.Films.Count() > 0) return Tuple.Create(false, $"Director's entity {director.FirstName} {director.LastName} contains films, which not suppose to be added/updated by films controller. If you want to update/add films to director's entity please use directors instance and directors controller");
             film.Director.Id = director.Id;
             
             return Tuple.Create(true, "");
@@ -203,8 +203,8 @@ namespace Films.Controllers
                     if (dbEntity == null) return Tuple.Create(false, $"{actor.FirstName} {actor.LastName} doesn't exist in db. Please add the actor first");
                     var entityToMap = film.Cast.Where(c => c.Actor.FirstName == actor.FirstName && c.Actor.LastName == actor.LastName).Select(c => c.Actor).SingleOrDefault();
                     entityToMap.Id = dbEntity.Id;
-                    var films = actor.ActorFilms.Select(af => af.Film).ToArray();
-                    if (films.Count() != 0) return Tuple.Create(false, $"{actor.FirstName} {actor.LastName} contains films, which not suppose to be updated by films controller.contains films, which not suppose to be added/updated by films controller. If you want to update/add films to actor's entity please use actors controller");
+                    if (actor.ActorFilms != null && actor.ActorFilms.Count() > 0) return Tuple.Create(false, $"{actor.FirstName} {actor.LastName} contains films, which not suppose to be updated by films controller." +
+                            $"If you want to add films to actor's entity please use actors controller");
                 }
             }
             return Tuple.Create(true, "");

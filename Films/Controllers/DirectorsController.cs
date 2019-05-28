@@ -47,17 +47,19 @@ namespace Films.Controllers
                 var existingDirector = await _repository.GetDirectorByNameAsync(model.FirstName, model.LastName);
                 if (existingDirector != null) return BadRequest("There is director with the name in db");
 
+                if (model.Films != null && model.Films.Count() > 0) return BadRequest("Please add director first. Than you can update list of films with PUT request");
+
                 var director = _mapper.Map<Director>(model);
 
                 _repository.Add(director);
 
-                var filmsUpdateResult = await UpdateFilmForDirector(director);
+                //var filmsUpdateResult = await UpdateFilmForDirector(director);
 
-                if (!filmsUpdateResult.Item1)
-                {
-                    //_repository.UndoChanges();
-                    return BadRequest(filmsUpdateResult.Item2);
-                }
+                //if (!filmsUpdateResult.Item1)
+                //{
+                //    //_repository.UndoChanges();
+                //    return BadRequest(filmsUpdateResult.Item2);
+                //}
 
                 if (!await _repository.SaveChangesAsync())
                 {

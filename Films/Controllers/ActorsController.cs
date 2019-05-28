@@ -59,8 +59,12 @@ namespace Films.Controllers
                 
                 var updateFilmsResult = await UpdateActorsFilms(actor);
 
-                if (!updateFilmsResult.Item1) return BadRequest(updateFilmsResult.Item2);
-                
+                if (!updateFilmsResult.Item1)
+                {
+                    _repository.UndoChanges();
+                    return BadRequest(updateFilmsResult.Item2);
+                }
+
 
                 if (await _repository.SaveChangesAsync()) return _mapper.Map<ActorModel>(actor);
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");

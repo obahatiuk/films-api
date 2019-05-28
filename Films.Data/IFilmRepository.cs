@@ -11,7 +11,6 @@ namespace Films.Data
         void Add<T>(T entity) where T : class;
         void Delete<T>(T entity) where T : class;
         void UndoChanges();
-        void RollBack();
         Task<bool> SaveChangesAsync();
 
         Task<Actor> GetActorByNameAsync(string actorsFirstName, string actorsLastName, bool includeCast = false);
