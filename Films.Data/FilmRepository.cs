@@ -63,9 +63,20 @@ namespace Films.Data
         public Task<Film[]> GetAllFilmsAsync(bool includeCast = false, bool includeDirector = false)
         {
             IQueryable<Film> query;
-            if (includeDirector && includeDirector) query = _filmContext.Films.Include(f => f.Director).Include(f => f.Cast).ThenInclude(a => a.Actor);
+            if (includeDirector && includeDirector) query = _filmContext.Films.Select(f => new Film()
+            {
+                Id = f.Id,
+                Title = f.Title,
+                Cast = f.Cast.Select( c => new ActorFilm() { Actor = new Actor() { Id = c.Actor.Id, FirstName = c.Actor.FirstName, LastName = c.Actor.LastName}}).ToList(),
+                Director = new Director() { FirstName = f.Director.FirstName, LastName = f.Director.LastName, Id = f.Director.Id }
+            });
             else if (includeDirector) query = _filmContext.Films.Include(f => f.Director);
-            else if (includeCast) query = _filmContext.Films.Include(f => f.Cast).ThenInclude(a => a.Actor);
+            else if (includeCast) query = _filmContext.Films.Select(f => new Film()
+            {
+                Id = f.Id,
+                Title = f.Title,
+                Cast = f.Cast.Select(c => new ActorFilm() { Actor = new Actor() { Id = c.Actor.Id, FirstName = c.Actor.FirstName, LastName = c.Actor.LastName } }).ToList(),
+            });
             else query = _filmContext.Films;
             return query.ToArrayAsync();
         }
@@ -83,9 +94,9 @@ namespace Films.Data
         public Task<Film[]> GetAllFilmsByDirectorAsync(int directorId, bool includeCast = false, bool includeDirector = false)
         {
             IQueryable<Film> query;
-            if (includeDirector && includeDirector) query = _filmContext.Films.Where(f => f.DirectorId == directorId).Include(f => f.Director).Include(f => f.Cast);
+            if (includeDirector && includeDirector) query = _filmContext.Films.Where(f => f.DirectorId == directorId).Include(f => f.Director).Include(f => f.Cast);//.Select(c => new { c.Cast..Actor.FirstName, c.Actor.LastName });
             else if (includeDirector) query = _filmContext.Films.Where(f => f.DirectorId == directorId).Include(f => f.Director).Include(f => f.Director);
-            else if (includeCast) query = _filmContext.Films.Where(f => f.DirectorId == directorId).Include(f => f.Director).Include(f => f.Cast);
+            else if (includeCast) query = _filmContext.Films.Where(f => f.DirectorId == directorId).Include(f => f.Cast);
             else query = _filmContext.Films.Where(f => f.DirectorId == directorId);
             return query.ToArrayAsync();
         }

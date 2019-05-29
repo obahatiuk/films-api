@@ -12,18 +12,18 @@ namespace Films.Models
         public FilmProfile()
         {
             CreateMap<Actor, ActorModel>()
+                .ForMember(dto => dto.Films, opt => opt.MapFrom(a => a.ActorFilms))
                 .ReverseMap();
 
             CreateMap<Director, DirectorModel>()
                 .ReverseMap();
 
             CreateMap<FilmModel, ActorFilm>()
-                .ForMember(dto => dto.Film, opt => opt.MapFrom(a => a))
+                .ForPath(dto => dto.Film, opt => opt.MapFrom(a => a))
                 .ReverseMap();
 
-            CreateMap<ActorFilm, ActorModel>()
-                .ForMember(dto => dto.FirstName, opt => opt.MapFrom(a => a.Actor.FirstName))
-                .ForMember(dto => dto.LastName, opt => opt.MapFrom(a => a.Actor.LastName))
+            CreateMap<ActorModel, ActorFilm>()
+                .ForPath(dto => dto.Actor, opt => opt.MapFrom(a => a))
                 .ReverseMap();
 
             CreateMap<FilmModel, Film>()
