@@ -29,6 +29,10 @@ namespace Films.Controllers
         {
             try
             {
+                var filmsModelValidationResult = ModelsValidator.ValidateFilmModels(model);
+
+                if (!filmsModelValidationResult.Item1) return BadRequest(filmsModelValidationResult.Item2);
+
                 var existingActor = await _repository.GetActorByNameAsync(model.FirstName, model.LastName);
                 if (existingActor != null) return BadRequest("The actor already exists");
 
@@ -53,6 +57,10 @@ namespace Films.Controllers
         {
             try
             {
+                var filmsModelValidationResult = ModelsValidator.ValidateFilmModels(model);
+
+                if (!filmsModelValidationResult.Item1) return BadRequest(filmsModelValidationResult.Item2);
+
                 var actor = await _repository.GetActorByNameAsync(firstName, lastName, true);
 
                  _mapper.Map(model, actor);
@@ -105,8 +113,7 @@ namespace Films.Controllers
             }
             catch (Exception)
             {
-
-                throw;
+                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }
         }
 
@@ -115,15 +122,20 @@ namespace Films.Controllers
             if (actor.ActorFilms.Count() != 0)
             {
                 var films = actor.ActorFilms.Select(af => af.Film).ToArray();
+
                 foreach (var film in films)
                 {
                     if (string.IsNullOrEmpty(film.Title)) return Tuple.Create(false, "Film title cannot be null");
+
                     var existingEntity = await _repository.GetFilmByTitleAsync(film.Title);
+
                     if(existingEntity == null) return Tuple.Create(false, $"Film {film.Title} doesn't exist in db");
+
                     film.Id = existingEntity.Id;
                 }
             }
             return Tuple.Create(true, "");
         }
+
     }
 }

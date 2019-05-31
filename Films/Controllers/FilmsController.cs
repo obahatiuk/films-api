@@ -44,6 +44,14 @@ namespace Films.Controllers
         {
             try
             {
+                var directorModelValidationResult = ModelsValidator.ValidateDirectorModel(model);
+
+                if (!directorModelValidationResult.Item1) return BadRequest(directorModelValidationResult.Item2);
+
+                var actorsModelValidationResult = ModelsValidator.ValidateDirectorModel(model);
+
+                if (!actorsModelValidationResult.Item1) return BadRequest(actorsModelValidationResult.Item2);
+
                 var film = await _repository.GetFilmByTitleAsync(model.Title);
                 if (film != null) return BadRequest("There is a film with same name");
 
@@ -74,18 +82,26 @@ namespace Films.Controllers
         {
             try
             {
-                var film = await _repository.GetFilmByTitleAsync(filmName);
+                var directorModelValidationResult = ModelsValidator.ValidateDirectorModel(model);
+
+                if (!directorModelValidationResult.Item1) return BadRequest(directorModelValidationResult.Item2);
+
+                var actorsModelValidationResult = ModelsValidator.ValidateDirectorModel(model);
+
+                if (!actorsModelValidationResult.Item1) return BadRequest(actorsModelValidationResult.Item2);
+
+                var film = await _repository.GetFilmByTitleAsync(filmName, true);
                 if (film == null) return BadRequest("Film doesn't exist in db please add film with post method /api/films");
 
                 _mapper.Map(model, film);
 
-                var updateDirectorResult = await UpdateDirectorAsync(film);
+                //var updateDirectorResult = await UpdateDirectorAsync(film);
 
-                if (!updateDirectorResult.Item1) return BadRequest(updateDirectorResult.Item2);
+                //if (!updateDirectorResult.Item1) return BadRequest(updateDirectorResult.Item2);
 
-                var updateCastResult = await UpdateCastAsync(film);
+                //var updateCastResult = await UpdateCastAsync(film);
 
-                if (!updateCastResult.Item1) return BadRequest(updateCastResult.Item2);
+                //if (!updateCastResult.Item1) return BadRequest(updateCastResult.Item2);
 
                 if (await _repository.SaveChangesAsync())
                 {
@@ -179,64 +195,40 @@ namespace Films.Controllers
 
         private async Task<Tuple<bool, string>> UpdateDirectorAsync(Film film)
         {
-            if (film.Director == null) return Tuple.Create(false, "Director reqired");
-
-            if (string.IsNullOrEmpty(film.Director.FirstName) || string.IsNullOrEmpty(film.Director.LastName)) return Tuple.Create(false, "Directors name invalid");
             var director = await _repository.GetDirectorByNameAsync(film.Director.FirstName, film.Director.LastName);
+
             if (director == null) return Tuple.Create(false, "Director not found. Please add director first");
-            if (film.Director.Films != null && film.Director.Films.Count() > 0) return Tuple.Create(false, $"Director's entity {director.FirstName} {director.LastName} contains films, which not suppose to be added/updated by films controller. If you want to update/add films to director's entity please use directors instance and directors controller");
+
             film.Director.Id = director.Id;
+            film.DirectorId = director.Id;
             
             return Tuple.Create(true, "");
         }
 
-
         private async Task<Tuple<bool, string>> UpdateCastAsync(Film film)
         {
-            if (film.Cast.Count() != 0)
+            if (film.Cast.Count() > 0)
             {
                 var actors = film.Cast.Select(af => af.Actor).ToArray();
-                foreach (var actor in actors)
+                for(int i = 0; i < film.Cast.Count; i++)
                 {
-                    if (string.IsNullOrEmpty(actor.FirstName) || string.IsNullOrEmpty(actor.LastName)) return Tuple.Create(false, $"{actor.FirstName} {actor.LastName} invalid");
-                    var dbEntity = await _repository.GetActorByNameAsync(actor.FirstName, actor.LastName);
-                    if (dbEntity == null) return Tuple.Create(false, $"{actor.FirstName} {actor.LastName} doesn't exist in db. Please add the actor first");
-                    var entityToMap = film.Cast.Where(c => c.Actor.FirstName == actor.FirstName && c.Actor.LastName == actor.LastName).Select(c => c.Actor).SingleOrDefault();
+                    if(string.IsNullOrEmpty(film.Cast.ElementAt(i).Actor.FirstName) || string.IsNullOrEmpty(film.Cast.ElementAt(i).Actor.LastName)) return Tuple.Create(false, $"{film.Cast.ElementAt(i).Actor.FirstName} {film.Cast.ElementAt(i).Actor.LastName} name is invalid.");
+
+                    var dbEntity = await _repository.GetActorByNameAsync(film.Cast.ElementAt(i).Actor.FirstName, film.Cast.ElementAt(i).Actor.LastName);
+
+                    if (dbEntity == null) return Tuple.Create(false, $"{film.Cast.ElementAt(i).Actor.FirstName} {film.Cast.ElementAt(i).Actor.LastName} doesn't exist in db. Please add the actor first");
+
+                    var entityToMap = film.Cast.Where(c => c.Actor.FirstName == film.Cast.ElementAt(i).Actor.FirstName && c.Actor.LastName == film.Cast.ElementAt(i).Actor.LastName).Select(c => c.Actor).SingleOrDefault();
+
                     entityToMap.Id = dbEntity.Id;
-                    if (actor.ActorFilms != null && actor.ActorFilms.Count() > 0) return Tuple.Create(false, $"{actor.FirstName} {actor.LastName} contains films, which not suppose to be updated by films controller." +
-                            $"If you want to add films to actor's entity please use actors controller");
+
+                    film.Cast.ElementAt(i).ActorId = dbEntity.Id;
+                    film.Cast.ElementAt(i).FilmId = film.Id;
                 }
             }
             return Tuple.Create(true, "");
         }
 
 
-        //private async Task<Tuple<ResultCodeOptions, string>> UpdateFilm(Film film, FilmModel model)
-        //{
-        //    _mapper.Map(model, film);
-
-        //    var updateDirectorResult = await UpdateDirector(film);
-
-        //    if (!updateDirectorResult.Item1) return Tuple.Create(updateDirectorResult.Item2);
-
-        //    var updateCastResult = await UpdateDirector(film);
-
-        //    if (!updateCastResult.Item1) return BadRequest(updateCastResult.Item2);
-
-        //    if (await _repository.SaveChangesAsync())
-        //    {
-        //        film = await _repository.GetFilmByTitleAsync(film.Title);
-        //        return Tuple.Create(true, "");
-        //    }
-
-        //}
-
-
-        //enum ResultCodeOptions
-        //{
-        //    Success = 1,
-        //    ServerError = 0,
-        //    BadRequest = -1
-        //}
     }
 }

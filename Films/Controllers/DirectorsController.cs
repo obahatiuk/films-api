@@ -30,8 +30,7 @@ namespace Films.Controllers
             try
             {
                 var directors = await _repository.GetAllDirectorsAsync(includeFilms);
-                var x = _mapper.Map<DirectorModel[]>(directors);
-                return x;
+                return _mapper.Map<DirectorModel[]>(directors);
             }
             catch (Exception e)
             {
@@ -44,6 +43,10 @@ namespace Films.Controllers
         {
             try
             {
+                var filmsModelValidationResult = ModelsValidator.ValidateFilmModels(model);
+
+                if (!filmsModelValidationResult.Item1) return BadRequest(filmsModelValidationResult.Item2);
+
                 var existingDirector = await _repository.GetDirectorByNameAsync(model.FirstName, model.LastName);
                 if (existingDirector != null) return BadRequest("There is director with the name in db");
 
@@ -52,14 +55,6 @@ namespace Films.Controllers
                 var director = _mapper.Map<Director>(model);
 
                 _repository.Add(director);
-
-                //var filmsUpdateResult = await UpdateFilmForDirector(director);
-
-                //if (!filmsUpdateResult.Item1)
-                //{
-                //    //_repository.UndoChanges();
-                //    return BadRequest(filmsUpdateResult.Item2);
-                //}
 
                 if (!await _repository.SaveChangesAsync())
                 {
@@ -82,11 +77,15 @@ namespace Films.Controllers
         {
             try
             {
+                var filmsModelValidationResult = ModelsValidator.ValidateFilmModels(model);
+
+                if (!filmsModelValidationResult.Item1) return BadRequest(filmsModelValidationResult.Item2);
+
                 var director = await _repository.GetDirectorByNameAsync(firstName, lastName);
                 if (director == null) return BadRequest("There is director with the name in db");
 
                 _mapper.Map(model, director);
-
+                            
                 var filmsUpdateResult = await UpdateFilmForDirector(director);
 
                 if (!filmsUpdateResult.Item1)
@@ -131,11 +130,13 @@ namespace Films.Controllers
             for(int i =0; i < director.Films.Count(); i++)
             {
                 var film = director.Films.ElementAt(i);
-                if (film.Cast != null && film.Cast.Count() > 0) return Tuple.Create(false, $"{film.Title} contains Cast inforamtion. Please use film controller in order to update cast");
+
                 var existingEntity = await _repository.GetFilmByTitleAsync(film.Title);
+
                 if (existingEntity == null) return Tuple.Create(false, $"{film.Title} doesn't exist in db. Please add film first");
+
                 existingEntity.DirectorId = director.Id;
-                director.Films.Remove(film);
+
             }
             return Tuple.Create(true, "");
         }
