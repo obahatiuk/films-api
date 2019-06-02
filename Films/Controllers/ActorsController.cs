@@ -43,7 +43,7 @@ namespace Films.Controllers
                     actor = await _repository.GetActorByNameAsync(actor.FirstName, actor.LastName); 
                     return Created($"api/Actors/{model.FirstName}/{model.LastName}", _mapper.Map<ActorModel>(actor));
                 }
-                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+                return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
             }
             catch (Exception e)
             {
@@ -78,7 +78,7 @@ namespace Films.Controllers
                     actor = await _repository.GetActorByNameAsync(firstName, lastName, true); 
                     return _mapper.Map<ActorModel>(actor);
                 }
-                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+                return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
             }
             catch (Exception e)
             {
@@ -112,7 +112,7 @@ namespace Films.Controllers
                 _repository.Delete(actor);
 
                 if (await _repository.SaveChangesAsync()) return Ok($"Actor {firstName} {lastName} was deleted");
-                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+                return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
             }
             catch (Exception)
             {

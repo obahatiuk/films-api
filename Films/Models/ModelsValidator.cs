@@ -16,6 +16,7 @@ namespace Films.Models
                     var film = model.Films.ElementAt(i);
 
                     if (film.Cast != null && film.Cast.Count() > 0) return Tuple.Create(false, $"{film.Title} contains Cast inforamtion. Please use film controller in order to update cast");
+                    if (film.Director != null) return Tuple.Create(false, "Film should not contain director in order to execute this method.");
 
                 }
             }

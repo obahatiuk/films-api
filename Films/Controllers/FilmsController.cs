@@ -44,6 +44,8 @@ namespace Films.Controllers
         {
             try
             {
+                if (model.Cast != null && model.Cast.Count() > 0) return BadRequest("Please add film first. Update films cast with updatefilm method");
+
                 var directorModelValidationResult = ModelsValidator.ValidateDirectorModel(model);
 
                 if (!directorModelValidationResult.Item1) return BadRequest(directorModelValidationResult.Item2);
@@ -73,7 +75,7 @@ namespace Films.Controllers
                     return Created($"/api/films/{model.Title}", _mapper.Map<FilmModel>(film));
                 }
             
-                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+                return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
 
             }
             catch (Exception e)
@@ -114,7 +116,7 @@ namespace Films.Controllers
                     return _mapper.Map<FilmModel>(film);
 
                 }
-                return StatusCode(StatusCodes.Status500InternalServerError, "No changes were saved");
+                return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
 
             }
             catch (Exception e)
@@ -136,7 +138,7 @@ namespace Films.Controllers
 
                 if (await _repository.SaveChangesAsync()) return Ok($"Film {filmName} was deleted");
 
-                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+                return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
             }
             catch (Exception e)
             {
@@ -163,7 +165,7 @@ namespace Films.Controllers
 
                 if (await _repository.SaveChangesAsync()) return Ok("Actor added");
 
-                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+                return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
 
             }
             catch (Exception)
@@ -224,13 +226,13 @@ namespace Films.Controllers
                 {
                     if(string.IsNullOrEmpty(actors.ElementAt(i).FirstName) || string.IsNullOrEmpty(actors.ElementAt(i).LastName)) return Tuple.Create(false, $"{actors.ElementAt(i).FirstName} {actors.ElementAt(i).LastName} name is invalid.");
 
-                    var dbEntity = await _repository.GetActorByNameAsync(actors.ElementAt(i).FirstName, actors.ElementAt(i).LastName, true);
+                    var actorDBEntity = await _repository.GetActorByNameAsync(actors.ElementAt(i).FirstName, actors.ElementAt(i).LastName, true);
 
-                    if (dbEntity == null) return Tuple.Create(false, "Actor not found");
+                    if (actorDBEntity == null) return Tuple.Create(false, "Actor not found");
 
-                    var isThereActorInCast = dbEntity.ActorFilms != null && dbEntity.ActorFilms.Where(c => c.Actor.FirstName == dbEntity.FirstName && c.Actor.LastName == dbEntity.LastName).Any();
+                    var isThereActorInCast = actorDBEntity.ActorFilms != null && actorDBEntity.ActorFilms.Where(c => c.FilmId == film.Id).Any();
 
-                    if (!isThereActorInCast) film.Cast.Add(new ActorFilm() { ActorId = dbEntity.Id, FilmId = film.Id, Actor = dbEntity});
+                    if (!isThereActorInCast) film.Cast.Add(new ActorFilm() { ActorId = actorDBEntity.Id, FilmId = film.Id});
                 }
             }
 

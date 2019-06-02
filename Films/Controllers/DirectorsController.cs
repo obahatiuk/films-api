@@ -43,6 +43,8 @@ namespace Films.Controllers
         {
             try
             {
+                if (model.Films != null && model.Films.Count() > 0) return BadRequest("Please add director first. Than you can update list of films with PUT request");
+
                 var filmsModelValidationResult = ModelsValidator.ValidateFilmModels(model);
 
                 if (!filmsModelValidationResult.Item1) return BadRequest(filmsModelValidationResult.Item2);
@@ -50,15 +52,13 @@ namespace Films.Controllers
                 var existingDirector = await _repository.GetDirectorByNameAsync(model.FirstName, model.LastName);
                 if (existingDirector != null) return BadRequest("There is director with the name in db");
 
-                if (model.Films != null && model.Films.Count() > 0) return BadRequest("Please add director first. Than you can update list of films with PUT request");
-
                 var director = _mapper.Map<Director>(model);
 
                 _repository.Add(director);
 
                 if (await _repository.SaveChangesAsync()) return Created($"api/Directors/{model.FirstName}/{model.LastName}", _mapper.Map<DirectorModel>(director));
 
-                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+                return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
             }
             catch (Exception e)
             {
@@ -90,7 +90,7 @@ namespace Films.Controllers
 
                 if (await _repository.SaveChangesAsync()) return Created($"api/Directors/{model.FirstName}/{model.LastName}", _mapper.Map<DirectorModel>(director));
 
-                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+                return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
             }
             catch (Exception e)
             {
@@ -98,22 +98,22 @@ namespace Films.Controllers
             }
         }
 
-        [HttpDelete("{firstName_lastName}")]
+        [HttpDelete("{firstName}_{lastName}")]
         public async Task<ActionResult> Delete(string firstName, string lastName)
         {
             try
             {
                 if (string.IsNullOrEmpty(firstName) || string.IsNullOrEmpty(lastName)) return BadRequest("Name is not valid");
 
-                var director = _repository.GetDirectorByNameAsync(firstName, lastName);
+                var director = await _repository.GetDirectorByNameAsync(firstName, lastName);
                 if (director == null) return BadRequest("Director doesn't exist in db");
 
                 _repository.Delete(director);
 
                 if (await _repository.SaveChangesAsync()) return Ok($"Director {firstName} {lastName} was deleted");
-                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+                return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }

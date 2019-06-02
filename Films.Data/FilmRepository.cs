@@ -109,7 +109,7 @@ namespace Films.Data
             {
                 Id = f.Id,
                 Title = f.Title,
-                Cast = f.Cast.Select(c => new ActorFilm() { Actor = new Actor() { Id = c.Actor.Id, FirstName = c.Actor.FirstName, LastName = c.Actor.LastName } }).ToList(),
+                Cast = f.Cast.Select(c => new ActorFilm() { Actor = new Actor() { Id = c.Actor.Id, FirstName = c.Actor.FirstName, LastName = c.Actor.LastName }, ActorId = c.ActorId }).ToList(),
             });
             else query = _filmContext.Films.Where(f => f.Cast.Where(af => af.FilmId == f.Id && af.ActorId == actorId) != null);
             return query.ToArrayAsync();
@@ -122,7 +122,7 @@ namespace Films.Data
             {
                 Id = f.Id,
                 Title = f.Title,
-                Cast = f.Cast.Select(c => new ActorFilm() { Actor = new Actor() { Id = c.Actor.Id, FirstName = c.Actor.FirstName, LastName = c.Actor.LastName } }).ToList(),
+                Cast = f.Cast.Select(c => new ActorFilm() { Actor = new Actor() { Id = c.Actor.Id, FirstName = c.Actor.FirstName, LastName = c.Actor.LastName }, ActorId = c.ActorId }).ToList(),
                 Director = new Director() { FirstName = f.Director.FirstName, LastName = f.Director.LastName, Id = f.Director.Id }
             });
             else if (includeDirector) query = _filmContext.Films.Where(f => f.DirectorId == directorId).Include(f => f.Director);
@@ -130,7 +130,7 @@ namespace Films.Data
             {
                 Id = f.Id,
                 Title = f.Title,
-                Cast = f.Cast.Select(c => new ActorFilm() { Actor = new Actor() { Id = c.Actor.Id, FirstName = c.Actor.FirstName, LastName = c.Actor.LastName } }).ToList(),
+                Cast = f.Cast.Select(c => new ActorFilm() { Actor = new Actor() { Id = c.Actor.Id, FirstName = c.Actor.FirstName, LastName = c.Actor.LastName }, ActorId = c.ActorId }).ToList(),
             });
             else query = _filmContext.Films.Where(f => f.DirectorId == directorId);
             return query.ToArrayAsync();
@@ -155,7 +155,7 @@ namespace Films.Data
             {
                 Id = f.Id,
                 Title = f.Title,
-                Cast = f.Cast.Select(c => new ActorFilm() { Actor = new Actor() { Id = c.Actor.Id, FirstName = c.Actor.FirstName, LastName = c.Actor.LastName } }).ToList(),
+                Cast = f.Cast.Select(c => new ActorFilm() { Actor = new Actor() { Id = c.Actor.Id, FirstName = c.Actor.FirstName, LastName = c.Actor.LastName }, ActorId = c.ActorId, FilmId=c.FilmId }).ToList(),
                 Director = new Director() { FirstName = f.Director.FirstName, LastName = f.Director.LastName, Id = f.Director.Id }
             });
             else if (includeDirector) query = _filmContext.Films.Where(f => f.Title == filmTitle).Include(f => f.Director);
@@ -164,7 +164,7 @@ namespace Films.Data
             {
                 Id = f.Id,
                 Title = f.Title,
-                Cast = f.Cast.Select(c => new ActorFilm() { Actor = new Actor() { Id = c.Actor.Id, FirstName = c.Actor.FirstName, LastName = c.Actor.LastName } }).ToList(),
+                Cast = f.Cast.Select(c => new ActorFilm() { Actor = new Actor() { Id = c.Actor.Id, FirstName = c.Actor.FirstName, LastName = c.Actor.LastName }, ActorId = c.ActorId, FilmId = c.FilmId }).ToList(),
             });
             else query = _filmContext.Films.Where(f => f.Title == filmTitle);
             return query.SingleOrDefaultAsync();
