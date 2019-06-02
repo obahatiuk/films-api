@@ -48,7 +48,7 @@ namespace Films.Controllers
 
                 if (!directorModelValidationResult.Item1) return BadRequest(directorModelValidationResult.Item2);
 
-                var actorsModelValidationResult = ModelsValidator.ValidateDirectorModel(model);
+                var actorsModelValidationResult = ModelsValidator.ValidateActorModels(model);
 
                 if (!actorsModelValidationResult.Item1) return BadRequest(actorsModelValidationResult.Item2);
 
@@ -67,7 +67,12 @@ namespace Films.Controllers
 
                 _repository.Add(film);
 
-                if (await _repository.SaveChangesAsync()) return Created($"/api/films/{model.Title}", _mapper.Map<FilmModel>(film));
+                if (await _repository.SaveChangesAsync())
+                {
+                    film = await _repository.GetFilmByTitleAsync(model.Title, true, true);
+                    return Created($"/api/films/{model.Title}", _mapper.Map<FilmModel>(film));
+                }
+            
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
 
             }
@@ -86,30 +91,30 @@ namespace Films.Controllers
 
                 if (!directorModelValidationResult.Item1) return BadRequest(directorModelValidationResult.Item2);
 
-                var actorsModelValidationResult = ModelsValidator.ValidateDirectorModel(model);
+                var actorsModelValidationResult = ModelsValidator.ValidateActorModels(model);
 
                 if (!actorsModelValidationResult.Item1) return BadRequest(actorsModelValidationResult.Item2);
 
-                var film = await _repository.GetFilmByTitleAsync(filmName, true);
+                var film = await _repository.GetFilmByTitleAsync(filmName);
                 if (film == null) return BadRequest("Film doesn't exist in db please add film with post method /api/films");
 
                 _mapper.Map(model, film);
 
-                //var updateDirectorResult = await UpdateDirectorAsync(film);
+                var updateDirectorResult = await UpdateDirectorAsync(film);
 
-                //if (!updateDirectorResult.Item1) return BadRequest(updateDirectorResult.Item2);
+                if (!updateDirectorResult.Item1) return BadRequest(updateDirectorResult.Item2);
 
-                //var updateCastResult = await UpdateCastAsync(film);
+                var updateCastResult = await UpdateCastAsync(film);
 
-                //if (!updateCastResult.Item1) return BadRequest(updateCastResult.Item2);
+                if (!updateCastResult.Item1) return BadRequest(updateCastResult.Item2);
 
                 if (await _repository.SaveChangesAsync())
                 {
-                    film = await _repository.GetFilmByTitleAsync(film.Title);
+                    film = await _repository.GetFilmByTitleAsync(film.Title, true, true);
                     return _mapper.Map<FilmModel>(film);
 
                 }
-                return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
+                return StatusCode(StatusCodes.Status500InternalServerError, "No changes were saved");
 
             }
             catch (Exception e)
@@ -144,6 +149,8 @@ namespace Films.Controllers
         {
             try
             {
+                if (model.Films != null && model.Films.Count() > 0) return BadRequest("Actor should not contain films");
+
                 var film = await _repository.GetFilmByTitleAsync(filmName, true);
                 if (film == null) return BadRequest("Film doesn't exist in db please add film with post method /api/films");
 
@@ -210,25 +217,24 @@ namespace Films.Controllers
             if (film.Cast.Count() > 0)
             {
                 var actors = film.Cast.Select(af => af.Actor).ToArray();
-                for(int i = 0; i < film.Cast.Count; i++)
+
+                film.Cast = new List<ActorFilm>();
+
+                for(int i = 0; i < actors.Count(); i++)
                 {
-                    if(string.IsNullOrEmpty(film.Cast.ElementAt(i).Actor.FirstName) || string.IsNullOrEmpty(film.Cast.ElementAt(i).Actor.LastName)) return Tuple.Create(false, $"{film.Cast.ElementAt(i).Actor.FirstName} {film.Cast.ElementAt(i).Actor.LastName} name is invalid.");
+                    if(string.IsNullOrEmpty(actors.ElementAt(i).FirstName) || string.IsNullOrEmpty(actors.ElementAt(i).LastName)) return Tuple.Create(false, $"{actors.ElementAt(i).FirstName} {actors.ElementAt(i).LastName} name is invalid.");
 
-                    var dbEntity = await _repository.GetActorByNameAsync(film.Cast.ElementAt(i).Actor.FirstName, film.Cast.ElementAt(i).Actor.LastName);
+                    var dbEntity = await _repository.GetActorByNameAsync(actors.ElementAt(i).FirstName, actors.ElementAt(i).LastName, true);
 
-                    if (dbEntity == null) return Tuple.Create(false, $"{film.Cast.ElementAt(i).Actor.FirstName} {film.Cast.ElementAt(i).Actor.LastName} doesn't exist in db. Please add the actor first");
+                    if (dbEntity == null) return Tuple.Create(false, "Actor not found");
 
-                    var entityToMap = film.Cast.Where(c => c.Actor.FirstName == film.Cast.ElementAt(i).Actor.FirstName && c.Actor.LastName == film.Cast.ElementAt(i).Actor.LastName).Select(c => c.Actor).SingleOrDefault();
+                    var isThereActorInCast = dbEntity.ActorFilms != null && dbEntity.ActorFilms.Where(c => c.Actor.FirstName == dbEntity.FirstName && c.Actor.LastName == dbEntity.LastName).Any();
 
-                    entityToMap.Id = dbEntity.Id;
-
-                    film.Cast.ElementAt(i).ActorId = dbEntity.Id;
-                    film.Cast.ElementAt(i).FilmId = film.Id;
+                    if (!isThereActorInCast) film.Cast.Add(new ActorFilm() { ActorId = dbEntity.Id, FilmId = film.Id, Actor = dbEntity});
                 }
             }
+
             return Tuple.Create(true, "");
         }
-
-
     }
 }

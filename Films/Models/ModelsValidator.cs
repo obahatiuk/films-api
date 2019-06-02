@@ -9,19 +9,23 @@ namespace Films.Models
     {
         public static Tuple<bool, string> ValidateFilmModels(FilmIndustryEmployee model)
         {
-            for (int i = 0; i < model.Films.Count(); i++)
+            if (model.Films != null && model.Films.Count() > 0)
             {
-                var film = model.Films.ElementAt(i);
+                for (int i = 0; i < model.Films.Count(); i++)
+                {
+                    var film = model.Films.ElementAt(i);
 
-                if (film.Cast != null && film.Cast.Count() > 0) return Tuple.Create(false, $"{film.Title} contains Cast inforamtion. Please use film controller in order to update cast");
+                    if (film.Cast != null && film.Cast.Count() > 0) return Tuple.Create(false, $"{film.Title} contains Cast inforamtion. Please use film controller in order to update cast");
 
+                }
             }
+
             return Tuple.Create(true, "");
         }
 
         public static Tuple<bool, string> ValidateDirectorModel(FilmModel film)
         {
-            if (film.Director == null) return Tuple.Create(false, "Director reqired");
+            if (film.Director == null) return Tuple.Create(false, "Director required");
 
             if (string.IsNullOrEmpty(film.Director.FirstName) || string.IsNullOrEmpty(film.Director.LastName)) return Tuple.Create(false, "Directors name invalid");
 
@@ -34,7 +38,7 @@ namespace Films.Models
 
         public static Tuple<bool, string> ValidateActorModels(FilmModel film)
         {
-            if (film.Cast.Count() != 0)
+            if (film.Cast != null && film.Cast.Count() > 0)
             {
                 var actors = film.Cast;
                 foreach (var actor in actors)

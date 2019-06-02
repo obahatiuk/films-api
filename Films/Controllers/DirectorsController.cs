@@ -56,12 +56,6 @@ namespace Films.Controllers
 
                 _repository.Add(director);
 
-                if (!await _repository.SaveChangesAsync())
-                {
-                    //_repository.UndoChanges();
-                    return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
-                } 
-
                 if (await _repository.SaveChangesAsync()) return Created($"api/Directors/{model.FirstName}/{model.LastName}", _mapper.Map<DirectorModel>(director));
 
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
@@ -127,16 +121,24 @@ namespace Films.Controllers
 
         private async Task<Tuple<bool, string>> UpdateFilmForDirector(Director director)
         {
-            for(int i =0; i < director.Films.Count(); i++)
+            if (director.Films != null && director.Films.Count() > 0)
             {
-                var film = director.Films.ElementAt(i);
+                var films = director.Films.ToArray();
 
-                var existingEntity = await _repository.GetFilmByTitleAsync(film.Title);
+                director.Films = null;
 
-                if (existingEntity == null) return Tuple.Create(false, $"{film.Title} doesn't exist in db. Please add film first");
+                for (int i = 0; i < films.Count(); i++)
+                {
+                    var film = films[i];
 
-                existingEntity.DirectorId = director.Id;
+                    var existingEntity = await _repository.GetFilmByTitleAsync(film.Title);
 
+                    if (existingEntity == null) return Tuple.Create(false, $"{film.Title} doesn't exist in db. Please add film first");
+
+                    existingEntity.DirectorId = director.Id;
+                    //director.Films.ElementAt(i).Id = existingEntity.Id;
+
+                }
             }
             return Tuple.Create(true, "");
         }

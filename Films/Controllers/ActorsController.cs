@@ -29,21 +29,20 @@ namespace Films.Controllers
         {
             try
             {
-                var filmsModelValidationResult = ModelsValidator.ValidateFilmModels(model);
-
-                if (!filmsModelValidationResult.Item1) return BadRequest(filmsModelValidationResult.Item2);
+                if(model.Films != null && model.Films.Count() > 0) return BadRequest("Add actor first. If you want to add films update actor");
 
                 var existingActor = await _repository.GetActorByNameAsync(model.FirstName, model.LastName);
                 if (existingActor != null) return BadRequest("The actor already exists");
 
                 var actor = _mapper.Map<Actor>(model);
-                var updateFilmsResult = await UpdateActorsFilms(actor);
-
-                if (!updateFilmsResult.Item1) return BadRequest(updateFilmsResult.Item2);
 
                 _repository.Add(actor);
 
-                if (await _repository.SaveChangesAsync()) return Created($"api/Actors/{model.FirstName}/{model.LastName}", _mapper.Map<ActorModel>(actor));
+                if (await _repository.SaveChangesAsync())
+                {
+                    actor = await _repository.GetActorByNameAsync(actor.FirstName, actor.LastName); 
+                    return Created($"api/Actors/{model.FirstName}/{model.LastName}", _mapper.Map<ActorModel>(actor));
+                }
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }
             catch (Exception e)
@@ -61,7 +60,7 @@ namespace Films.Controllers
 
                 if (!filmsModelValidationResult.Item1) return BadRequest(filmsModelValidationResult.Item2);
 
-                var actor = await _repository.GetActorByNameAsync(firstName, lastName, true);
+                var actor = await _repository.GetActorByNameAsync(firstName, lastName);
 
                  _mapper.Map(model, actor);
                 
@@ -74,7 +73,11 @@ namespace Films.Controllers
                 }
 
 
-                if (await _repository.SaveChangesAsync()) return _mapper.Map<ActorModel>(actor);
+                if (await _repository.SaveChangesAsync())
+                {
+                    actor = await _repository.GetActorByNameAsync(firstName, lastName, true); 
+                    return _mapper.Map<ActorModel>(actor);
+                }
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }
             catch (Exception e)
@@ -119,19 +122,24 @@ namespace Films.Controllers
 
         private async Task<Tuple<bool, string>>UpdateActorsFilms(Actor actor)
         {
-            if (actor.ActorFilms.Count() != 0)
+            if (actor.ActorFilms != null && actor.ActorFilms.Count() > 0)
             {
                 var films = actor.ActorFilms.Select(af => af.Film).ToArray();
+
+                actor.ActorFilms = new List<ActorFilm>();
 
                 foreach (var film in films)
                 {
                     if (string.IsNullOrEmpty(film.Title)) return Tuple.Create(false, "Film title cannot be null");
 
-                    var existingEntity = await _repository.GetFilmByTitleAsync(film.Title);
+                    var existingFilmEntity = await _repository.GetFilmByTitleAsync(film.Title, includeActorFilm: true);
 
-                    if(existingEntity == null) return Tuple.Create(false, $"Film {film.Title} doesn't exist in db");
+                    if(existingFilmEntity == null) return Tuple.Create(false, $"Film {film.Title} doesn't exist in db");
 
-                    film.Id = existingEntity.Id;
+                    if (!existingFilmEntity.Cast.Where(c => c.ActorId == actor.Id).Any() || actor.Id <= 0) existingFilmEntity.Cast.Add(new ActorFilm() { ActorId = actor.Id, FilmId = existingFilmEntity.Id });
+
+                        
+                    film.Id = existingFilmEntity.Id;
                 }
             }
             return Tuple.Create(true, "");
