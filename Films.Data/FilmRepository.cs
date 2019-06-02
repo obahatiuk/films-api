@@ -83,7 +83,12 @@ namespace Films.Data
                 Cast = f.Cast.Select( c => new ActorFilm() { Actor = new Actor() { Id = c.Actor.Id, FirstName = c.Actor.FirstName, LastName = c.Actor.LastName}}).ToList(),
                 Director = new Director() { FirstName = f.Director.FirstName, LastName = f.Director.LastName, Id = f.Director.Id }
             });
-            else if (includeDirector) query = _filmContext.Films.Include(f => f.Director);
+            else if (includeDirector) query = _filmContext.Films.Select(f => new Film()
+            {
+                Id = f.Id,
+                Title = f.Title,
+                Director = new Director() { FirstName = f.Director.FirstName, LastName = f.Director.LastName, Id = f.Director.Id }
+            });
             else if (includeCast) query = _filmContext.Films.Select(f => new Film()
             {
                 Id = f.Id,

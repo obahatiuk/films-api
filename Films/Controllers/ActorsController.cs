@@ -62,6 +62,8 @@ namespace Films.Controllers
 
                 var actor = await _repository.GetActorByNameAsync(firstName, lastName);
 
+                if (actor == null) return BadRequest($"Actor {firstName} {lastName} doesn't exist");
+
                  _mapper.Map(model, actor);
                 
                 var updateFilmsResult = await UpdateActorsFilms(actor);

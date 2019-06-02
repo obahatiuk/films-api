@@ -228,7 +228,7 @@ namespace Films.Controllers
 
                     var actorDBEntity = await _repository.GetActorByNameAsync(actors.ElementAt(i).FirstName, actors.ElementAt(i).LastName, true);
 
-                    if (actorDBEntity == null) return Tuple.Create(false, "Actor not found");
+                    if (actorDBEntity == null) return Tuple.Create(false, $"Actor {actors.ElementAt(i).FirstName} {actors.ElementAt(i).LastName} not found. Please add actor first");
 
                     var isThereActorInCast = actorDBEntity.ActorFilms != null && actorDBEntity.ActorFilms.Where(c => c.FilmId == film.Id).Any();
 
