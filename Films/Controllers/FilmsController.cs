@@ -29,6 +29,7 @@ namespace Films.Controllers
         {
             try
             {
+
                 var results = await _repository.GetAllFilmsAsync(includeCast, includeDirector);
 
                 return _mapper.Map<FilmModel[]>(results);

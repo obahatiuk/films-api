@@ -1,10 +1,14 @@
 ﻿using Films.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Films.Data
 {
-    public class FilmContext : DbContext 
+    public class FilmContext : DbContext
     {
         public DbSet<Core.Film> Films { get; set; }
         public DbSet<Actor> Actors { get; set; }
@@ -17,8 +21,7 @@ namespace Films.Data
         {
             modelBuilder.Entity<ActorFilm>()
                 .HasKey(af => new { af.ActorId, af.FilmId });
-            modelBuilder.Entity<ActorFilm>()
-                .HasKey(af => new { af.ActorId, af.FilmId });
+
             base.OnModelCreating(modelBuilder);
         }
     }

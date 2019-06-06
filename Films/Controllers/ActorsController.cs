@@ -70,7 +70,7 @@ namespace Films.Controllers
 
                 if (!updateFilmsResult.Item1)
                 {
-                    _repository.UndoChanges();
+                    //_repository.UndoChanges();
                     return BadRequest(updateFilmsResult.Item2);
                 }
 
@@ -139,7 +139,6 @@ namespace Films.Controllers
                     if(existingFilmEntity == null) return Tuple.Create(false, $"Film {film.Title} doesn't exist in db");
 
                     if (!existingFilmEntity.Cast.Where(c => c.ActorId == actor.Id).Any() || actor.Id <= 0) existingFilmEntity.Cast.Add(new ActorFilm() { ActorId = actor.Id, FilmId = existingFilmEntity.Id });
-
                         
                     film.Id = existingFilmEntity.Id;
                 }
