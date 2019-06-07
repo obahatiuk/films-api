@@ -45,7 +45,7 @@ namespace Films.Controllers
                 }
                 return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }
@@ -70,7 +70,6 @@ namespace Films.Controllers
 
                 if (!updateFilmsResult.Item1)
                 {
-                    //_repository.UndoChanges();
                     return BadRequest(updateFilmsResult.Item2);
                 }
 
@@ -82,7 +81,7 @@ namespace Films.Controllers
                 }
                 return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }
@@ -96,7 +95,7 @@ namespace Films.Controllers
                 var actors = await _repository.GetAllActorsAsync(includeFilms);
                 return _mapper.Map<ActorModel[]>(actors);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }

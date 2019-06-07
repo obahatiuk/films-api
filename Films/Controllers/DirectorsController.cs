@@ -32,7 +32,7 @@ namespace Films.Controllers
                 var directors = await _repository.GetAllDirectorsAsync(includeFilms);
                 return _mapper.Map<DirectorModel[]>(directors);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }
@@ -60,7 +60,7 @@ namespace Films.Controllers
 
                 return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }
@@ -84,7 +84,6 @@ namespace Films.Controllers
 
                 if (!filmsUpdateResult.Item1)
                 {
-                    //_repository.Undo(director);
                     return BadRequest(filmsUpdateResult.Item2);
                 }
 
@@ -92,7 +91,7 @@ namespace Films.Controllers
 
                 return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }
@@ -113,7 +112,7 @@ namespace Films.Controllers
                 if (await _repository.SaveChangesAsync()) return Ok($"Director {firstName} {lastName} was deleted");
                 return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }
@@ -136,8 +135,6 @@ namespace Films.Controllers
                     if (existingEntity == null) return Tuple.Create(false, $"{film.Title} doesn't exist in db. Please add film first");
 
                     existingEntity.DirectorId = director.Id;
-                    //director.Films.ElementAt(i).Id = existingEntity.Id;
-
                 }
             }
             return Tuple.Create(true, "");

@@ -195,17 +195,17 @@ namespace Films.Data
 
                 foreach (var film in FilmsToAdd)
                 {
-                    film.Id = Films.Count();
+                    film.Id = Films.Count() + 1;
                     Films.Add(film);
                 }
                 foreach (var actor in ActorsToAdd)
                 {
-                    actor.Id = Actors.Count();
+                    actor.Id = Actors.Count() + 1;
                     Actors.Add(actor);
                 }
                 foreach (var director in DirectorsToAdd)
                 {
-                    director.Id = Directors.Count();
+                    director.Id = Directors.Count() + 1;
                     Directors.Add(director);
                 }
 

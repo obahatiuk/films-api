@@ -79,7 +79,7 @@ namespace Films.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
 
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }
@@ -120,7 +120,7 @@ namespace Films.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
 
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }
@@ -141,7 +141,7 @@ namespace Films.Controllers
 
                 return StatusCode(StatusCodes.Status500InternalServerError, "It looks like no changes were made");
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Database failure");
             }

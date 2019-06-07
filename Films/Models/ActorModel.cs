@@ -8,6 +8,5 @@ namespace Films.Models
 {
     public class ActorModel : FilmIndustryEmployee
     {
-        
     }
 }
